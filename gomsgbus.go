@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"nanomsg.org/go/mangos/v2"
@@ -20,12 +21,18 @@ var (
 	firstPeerIdx        = 4
 	minArgLength        = 5
 	incomingBusChan     = make(chan string)
-	incomingHttpCmdChan = make(chan string)
+	incomingHttpCmdChan = make(chan BusMsg)
 )
 
 func die(format string, v ...interface{}) {
 	fmt.Fprintln(os.Stderr, fmt.Sprintf(format, v...))
 	os.Exit(1)
+}
+
+type BusMsg struct {
+	Sender string
+	Topic string
+	Msg string
 }
 
 func main() {
@@ -60,7 +67,8 @@ func msgHub(busSocket mangos.Socket) {
 	for {
 		select {
 		case httpMsg := <-incomingHttpCmdChan:
-			err := busSocket.Send([]byte(httpMsg))
+			m, _ := json.Marshal(httpMsg)
+			err := busSocket.Send(m)
 			if err != nil {
 				fmt.Errorf("cannot send http cmd to bus: %#v", err)
 			}
@@ -79,7 +87,16 @@ func httpSetup() *echo.Echo {
 	})
 
 	e.POST("/cmd", func(c echo.Context) error {
-		incomingHttpCmdChan <- fmt.Sprintf("The time now is: %v", time.Now())
+
+		topic := c.FormValue("t")
+		msg := c.FormValue("m")
+
+		incomingHttpCmdChan <- BusMsg{
+			Sender: nodename,
+			Topic: topic,
+			Msg:   msg,
+		}
+
 		return c.String(http.StatusOK, "Kommando erfolgreich gepostet...")
 	})
 	e.HideBanner = true

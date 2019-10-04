@@ -3,6 +3,9 @@ url0=tcp://127.0.0.1:40890
 url1=tcp://127.0.0.1:40891
 url2=tcp://127.0.0.1:40892
 url3=tcp://127.0.0.1:40893
+
+
+./killem.sh
 ./gomsgbus node0 1234 $url0 $url1 $url2 & node0=$!
 ./gomsgbus node1 2345 $url1 $url2 $url3 & node1=$!
 ./gomsgbus node2 3456 $url2 $url3 & node2=$!
